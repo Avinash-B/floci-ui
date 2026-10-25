@@ -9,6 +9,7 @@ import {
 } from '@aws-sdk/client-lambda'
 import {AwsServerlessAdapter} from './AwsServerlessAdapter'
 import {ValidationError} from '../cloud-spi/errors'
+import {createZipArchive} from './zipArchive'
 
 type SendResult = Record<string, unknown>
 
@@ -40,6 +41,57 @@ const listPayload = {
 }
 
 describe('AwsServerlessAdapter', () => {
+    test.each([
+        {value: undefined, memory: 128, timeout: 3},
+        {value: null, memory: 128, timeout: 3},
+        {value: '', memory: 128, timeout: 3},
+        {value: 0, memory: 0, timeout: 0},
+        {value: '0', memory: 0, timeout: 0},
+        {value: 256, memory: 256, timeout: 256},
+    ])('defaults only missing or blank numeric settings ($value)', async ({value, memory, timeout}) => {
+        const {client, sent} = stubLambda(() => ({FunctionName: 'hello'}))
+        await new AwsServerlessAdapter(client).create({values: {
+            functionName: 'hello', runtime: 'nodejs20.x', handler: 'index.handler', role: 'arn:role',
+            memorySize: value, timeout: value,
+        }})
+        const command = sent[0] as CreateFunctionCommand
+        expect(command.input.MemorySize).toBe(memory)
+        expect(command.input.Timeout).toBe(timeout)
+    })
+
+    test.each(['x86_64', 'arm64'])('deploys an unchanged Rust ZIP for %s', async (architecture) => {
+        const zip = createZipArchive([{name: 'bootstrap', content: new Uint8Array([0x7f, 69, 76, 70, 0, 255, 128])}])
+        const {client, sent} = stubLambda(() => ({FunctionName: 'rust', Runtime: 'provided.al2023'}))
+        await new AwsServerlessAdapter(client).create({values: {
+            functionName: 'rust', runtime: 'provided.al2023', role: 'arn:role', architecture,
+            zipBase64: Buffer.from(zip).toString('base64'),
+            handler: 'stale.handler', code: 'stale inline code', memorySize: '', timeout: '',
+        }})
+        const command = sent[0] as CreateFunctionCommand
+        expect(command.input).toMatchObject({
+            Runtime: 'provided.al2023', Handler: 'bootstrap', Architectures: [architecture], MemorySize: 128, Timeout: 3,
+        })
+        expect(Buffer.from(command.input.Code!.ZipFile!)).toEqual(Buffer.from(zip))
+    })
+
+    test.each([undefined, '', 'not base64', Buffer.from('fn main() {}').toString('base64')])(
+        'rejects a missing or invalid Rust ZIP before calling Lambda (%s)', async (zipBase64) => {
+            const {client, sent} = stubLambda(() => ({}))
+            await expect(new AwsServerlessAdapter(client).create({values: {
+                functionName: 'rust', runtime: 'provided.al2023', role: 'arn:role', zipBase64,
+            }})).rejects.toBeInstanceOf(ValidationError)
+            expect(sent).toHaveLength(0)
+        },
+    )
+
+    test('rejects an unsupported architecture before calling Lambda', async () => {
+        const {client, sent} = stubLambda(() => ({}))
+        await expect(new AwsServerlessAdapter(client).create({values: {
+            functionName: 'hello', runtime: 'nodejs20.x', role: 'arn:role', handler: 'index.handler', architecture: 'macos',
+        }})).rejects.toThrow('Architecture must be x86_64 or arm64.')
+        expect(sent).toHaveLength(0)
+    })
+
     test('identifies itself as the AWS serverless adapter', () => {
         const {client} = stubLambda(() => ({}))
         const adapter = new AwsServerlessAdapter(client)

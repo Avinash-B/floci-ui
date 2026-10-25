@@ -72,7 +72,7 @@ export interface CloudServiceStatus {
     errorCode: string | null
 }
 
-export type FieldType = 'text' | 'textarea' | 'password' | 'select'
+export type FieldType = 'text' | 'textarea' | 'password' | 'select' | 'file'
 
 export interface FieldSchema {
     name: string
@@ -85,7 +85,9 @@ export interface FieldSchema {
     span?: boolean
     valuePath?: string
     defaultValue?: string
-    visibleWhen?: {field: string; equals: string}
+    visibleWhen?: {field: string; equals?: string; notEquals?: string}
+    accept?: string
+    maxBytes?: number
     validation?: {
         pattern?: string
         minLength?: number
