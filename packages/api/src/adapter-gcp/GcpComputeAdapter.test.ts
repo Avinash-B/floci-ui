@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, test} from 'bun:test'
 import {GcpComputeAdapter} from './GcpComputeAdapter'
 import {GcpRestRuntimeClient} from '../gcp'
-import {RuntimeError, ValidationError} from '../cloud-spi/errors'
+import {NotFoundError, RuntimeError, ValidationError} from '../cloud-spi/errors'
 
 const originalFetch = globalThis.fetch
 const ENDPOINT = 'http://localhost:4588'
@@ -176,7 +176,7 @@ describe('GcpComputeAdapter', () => {
     })
 
     test('maps start, stop and reboot to start, stop and reset', async () => {
-        const calls = stubFetch(() => json(operation('PENDING')))
+        const calls = stubFetch(() => json(operation('DONE')))
 
         await adapter().start('us-central1-a/vm1')
         await adapter().stop('us-central1-a/vm1')
@@ -184,6 +184,22 @@ describe('GcpComputeAdapter', () => {
 
         expect(calls.map((call) => call.url.split('/').pop())).toEqual(['start', 'stop', 'reset'])
         expect(calls.every((call) => call.init?.method === 'POST')).toBe(true)
+    })
+
+    test('waits for a power operation to finish, so a read right after sees the new state', async () => {
+        const calls = stubFetch((url) => json(operation(url.includes('/operations/') ? 'DONE' : 'PENDING')))
+
+        await adapter().stop('us-central1-a/vm1')
+
+        expect(calls.map((call) => call.url.replace(`${ENDPOINT}${PROJECT_PATH}`, ''))).toEqual([
+            '/zones/us-central1-a/instances/vm1/stop',
+            '/zones/us-central1-a/operations/operation-1',
+        ])
+    })
+
+    test('a power verb on a missing instance is not found', async () => {
+        stubFetch(() => json({error: {code: 404, message: 'not found'}}, 404))
+        await expect(adapter().start('us-central1-a/ghost')).rejects.toBeInstanceOf(NotFoundError)
     })
 
     describe('network defaults', () => {

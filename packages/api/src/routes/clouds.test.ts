@@ -995,6 +995,32 @@ describe('KMS crypto routes', () => {
         }
     })
 
+    test('dispatches compute power verbs and answers with the instance read back', async () => {
+        const called: string[] = []
+        let status = 'RUNNING'
+        const resource = (): CloudResource => ({id: 'us-central1-a/vm1', name: 'vm1', cloud: 'gcp', service: 'compute', type: 'instance', region: null, createdAt: null, status, metadata: {}})
+        const app = appWithRoutes([mockAdapter('gcp', {
+            service: 'compute',
+            get: async () => resource(),
+            start: async (id) => { called.push(`start:${id}`); status = 'RUNNING' },
+            stop: async (id) => { called.push(`stop:${id}`); status = 'TERMINATED' },
+            reboot: async (id) => { called.push(`reboot:${id}`) },
+        })])
+        const route = '/api/clouds/gcp/services/compute/resources/us-central1-a%2Fvm1'
+        const stopped = await app.request(`${route}/stop`, {method: 'POST'})
+        expect(stopped.status).toBe(200)
+        expect(await stopped.json()).toMatchObject({status: 'TERMINATED'})
+        expect((await app.request(`${route}/start`, {method: 'POST'})).status).toBe(200)
+        expect((await app.request(`${route}/reboot`, {method: 'POST'})).status).toBe(200)
+        expect(called).toEqual(['stop:us-central1-a/vm1', 'start:us-central1-a/vm1', 'reboot:us-central1-a/vm1'])
+    })
+
+    test('a compute adapter without a power verb answers 501', async () => {
+        const app = appWithRoutes([mockAdapter('gcp', {service: 'compute'})])
+        const response = await app.request('/api/clouds/gcp/services/compute/resources/vm1/start', {method: 'POST'})
+        expect(response.status).toBe(501)
+    })
+
     test('dispatches rotation and deletion cancellation to the selected key', async () => {
         const called: string[] = []
         const resource: CloudResource = {id: 'key-1', name: 'key-1', cloud: 'oci', service: 'kms', type: 'key', region: null, createdAt: null, metadata: {}}

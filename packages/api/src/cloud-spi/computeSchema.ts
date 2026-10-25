@@ -184,33 +184,26 @@ export function azureComputeSchema(): ServiceSchema {
                 {name: 'inspect', label: 'Inspect', enabled: true, status: 'available', runtimeRequired: true},
                 {name: 'create', label: 'Create VM', enabled: true, status: 'available', runtimeRequired: true},
                 {name: 'delete', label: 'Delete VM', enabled: true, status: 'available', runtimeRequired: true},
-                // The runtime and the adapter both do these — verified against
-                // floci-az, where powerOff/start/restart really change power state.
-                // There is no generic actions route yet (only invoke/objects), so
-                // the console cannot reach them; saying `coming_soon` with the
-                // reason beats advertising a control that cannot be called.
+                // Verified against floci-az, where powerOff/start/restart really change power state.
                 {
                     name: 'start',
                     label: 'Start',
-                    enabled: false,
-                    status: 'coming_soon',
-                    reason: 'The adapter implements start, but the generic resource actions route is not wired yet.',
+                    enabled: true,
+                    status: 'available',
                     runtimeRequired: true,
                 },
                 {
                     name: 'stop',
                     label: 'Stop',
-                    enabled: false,
-                    status: 'coming_soon',
-                    reason: 'The adapter implements stop, but the generic resource actions route is not wired yet.',
+                    enabled: true,
+                    status: 'available',
                     runtimeRequired: true,
                 },
                 {
                     name: 'reboot',
                     label: 'Restart',
-                    enabled: false,
-                    status: 'coming_soon',
-                    reason: 'The adapter implements reboot, but the generic resource actions route is not wired yet.',
+                    enabled: true,
+                    status: 'available',
                     runtimeRequired: true,
                 },
             ],
@@ -351,25 +344,22 @@ export function gcpComputeSchema(): ServiceSchema {
                 {
                     name: 'start',
                     label: 'Start',
-                    enabled: false,
-                    status: 'coming_soon',
-                    reason: 'The adapter implements start, but the generic resource actions route is not wired yet.',
+                    enabled: true,
+                    status: 'available',
                     runtimeRequired: true,
                 },
                 {
                     name: 'stop',
                     label: 'Stop',
-                    enabled: false,
-                    status: 'coming_soon',
-                    reason: 'The adapter implements stop, but the generic resource actions route is not wired yet.',
+                    enabled: true,
+                    status: 'available',
                     runtimeRequired: true,
                 },
                 {
                     name: 'reboot',
                     label: 'Reset',
-                    enabled: false,
-                    status: 'coming_soon',
-                    reason: 'The adapter implements reset, but the generic resource actions route is not wired yet.',
+                    enabled: true,
+                    status: 'available',
                     runtimeRequired: true,
                 },
             ],

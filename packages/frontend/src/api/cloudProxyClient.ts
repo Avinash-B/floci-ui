@@ -357,6 +357,22 @@ export async function verifyKmsResource(
   return res.data;
 }
 
+export type ComputePowerAction = "start" | "stop" | "reboot";
+
+export async function powerComputeResource(
+  cloud: CloudProvider,
+  id: string,
+  action: ComputePowerAction,
+  signal?: AbortSignal,
+): Promise<CloudResource> {
+  const res = await apiClient.call<CloudResource>(
+    apiEndpointKeys.clouds.resources.power,
+    requestOptions(cloud, "compute", {signal}),
+    {cloud, id, action},
+  );
+  return res.data;
+}
+
 export async function cancelKmsDeletionResource(cloud: CloudProvider, id: string, signal?: AbortSignal): Promise<CloudResource> {
   const res = await apiClient.call<CloudResource>(
     apiEndpointKeys.clouds.resources.cancelDeletion,

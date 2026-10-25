@@ -11,6 +11,7 @@ import type {
     ServiceSchema,
     SqlConnectionInput,
 } from '../cloud-spi/types'
+import {COMPUTE_POWER_ACTIONS} from '../cloud-spi/types'
 import {clampLimit, parseKeyQuery, type PageQuery} from '../cloud-spi/childCollections'
 import {CloudError, NotFoundError, toHttpError, ValidationError} from '../cloud-spi/errors'
 import {isServiceType} from '../cloud-spi/serviceCatalog'
@@ -965,6 +966,14 @@ export function createCloudRoutes(
             })
         })
     })
+
+    for (const action of COMPUTE_POWER_ACTIONS) {
+        app.post(`/:cloud/services/compute/resources/:id/${action}`, async (c) => {
+            const cloud = c.req.param('cloud') as CloudProvider
+            if (!isCloudProvider(cloud)) throw new NotFoundError('Unknown cloud')
+            return withRuntime(c, async () => c.json(await svc(c).powerCompute(cloud, c.req.param('id'), action)))
+        })
+    }
 
     app.post('/:cloud/services/kms/resources/:id/rotate', async (c) => {
         const cloud = c.req.param('cloud') as CloudProvider

@@ -100,6 +100,10 @@ export interface FieldSchema {
  * generic view renders; `ResourceActionName` additionally covers lifecycle verbs
  * that a capability block can describe but that are not table-level controls.
  */
+/** The power verbs a compute adapter may implement, reached through `/compute/resources/:id/<verb>`. */
+export const COMPUTE_POWER_ACTIONS = ['start', 'stop', 'reboot'] as const
+export type ComputePowerAction = (typeof COMPUTE_POWER_ACTIONS)[number]
+
 export type ActionSchema = 'list' | 'create' | 'update' | 'delete' | 'inspect'
 export type ResourceActionName =
     | 'list'

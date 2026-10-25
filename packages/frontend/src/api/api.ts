@@ -28,6 +28,7 @@ export const apiEndpointKeys = {
       sign: "clouds.services.resources.sign",
       verify: "clouds.services.resources.verify",
       cancelDeletion: "clouds.services.resources.cancelDeletion",
+      power: "clouds.services.resources.power",
       recover: "clouds.services.resources.recover",
       purgeDeleted: "clouds.services.resources.purgeDeleted",
       recoverKms: "clouds.services.resources.recoverKms",
@@ -370,6 +371,14 @@ export const endpointRegistry: EndpointRegistry = new Map([
       path: "/clouds/:cloud/services/kms/resources/:id/cancel-deletion",
       method: "POST",
       telemetry: { service: "kms" },
+    },
+  ],
+  [
+    apiEndpointKeys.clouds.resources.power,
+    {
+      path: "/clouds/:cloud/services/compute/resources/:id/:action",
+      method: "POST",
+      telemetry: { service: "compute" },
     },
   ],
   [

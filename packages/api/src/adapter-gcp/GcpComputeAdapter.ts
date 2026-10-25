@@ -210,8 +210,13 @@ export class GcpComputeAdapter implements CloudServiceAdapter {
 
     private async power(id: string, action: 'start' | 'stop' | 'reset'): Promise<void> {
         const {zone, name} = parseId(id)
-        const res = await this.client.fetch(`${this.instancePath(zone, name)}/${action}`, {method: 'POST'}, {emptyOnNotFound: true})
-        if (!res) throw new NotFoundError(`Instance ${id} was not found`)
+        const operation = await this.client.json<GceOperation>(
+            `${this.instancePath(zone, name)}/${action}`,
+            {method: 'POST'},
+            {emptyOnNotFound: true},
+        )
+        if (!operation) throw new NotFoundError(`Instance ${id} was not found`)
+        await this.waitForOperation(this.zonePath(zone), operation)
     }
 
     /**

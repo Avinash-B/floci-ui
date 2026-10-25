@@ -8,6 +8,7 @@ import type {
     CloudServiceType,
     CloudServiceStatus,
     CloudStatus,
+    ComputePowerAction,
     CosmosContainer,
     CosmosItem,
     CosmosQueryResult,
@@ -61,7 +62,7 @@ import type {
     KeyQuery,
     PageQuery,
 } from '../cloud-spi/childCollections'
-import {ConflictError, NotSupportedError} from '../cloud-spi/errors'
+import {ConflictError, NotFoundError, NotSupportedError} from '../cloud-spi/errors'
 import {CloudAdapterRegistry} from '../registry/CloudAdapterRegistry'
 import {SERVICE_CATALOG_ENTRIES, descriptionFor, displayNameFor, routeFor} from '../cloud-spi/serviceCatalog'
 import {toHttpError} from '../cloud-spi/errors'
@@ -271,6 +272,17 @@ export class CloudProxyService {
         const adapter = this.requireAdapter(cloud, 'kms')
         if (!adapter.decrypt) throw new NotSupportedError(`${cloud}/kms decrypt is not supported`)
         return adapter.decrypt(keyId, input)
+    }
+
+    /** Runs a power verb, then reads the instance back so the caller sees the state the runtime now reports. */
+    async powerCompute(cloud: CloudProvider, id: string, action: ComputePowerAction): Promise<CloudResource> {
+        const adapter = this.requireAdapter(cloud, 'compute')
+        const run = adapter[action]
+        if (!run) throw new NotSupportedError(`${cloud}/compute ${action} is not supported`)
+        await run.call(adapter, id)
+        const resource = await adapter.get(id)
+        if (!resource) throw new NotFoundError(`Instance ${id} not found`)
+        return resource
     }
 
     async rotateKms(cloud: CloudProvider, keyId: string): Promise<CloudResource> {

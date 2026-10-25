@@ -46,6 +46,7 @@ import {
 } from "@/lib/storageQueryKeys";
 
 const ComputePanel = lazyPanel(() => import("@/components/ComputePanel").then((m) => m.ComputePanel));
+const ComputePowerPanel = lazyPanel(() => import("@/components/ComputePowerPanel").then((m) => m.ComputePowerPanel));
 const LaunchInstanceForm = lazyPanel(() => import("@/components/ComputePanel").then((m) => m.LaunchInstanceForm));
 const NetworkingPanel = lazyPanel(() => import("@/components/NetworkingPanel").then((m) => m.NetworkingPanel));
 const ServerlessInvokePanel = lazyPanel(() => import("@/components/ServerlessInvokePanel").then((m) => m.ServerlessInvokePanel));
@@ -1001,6 +1002,18 @@ export function DynamicResourceView({
           cloud={cloud}
           resource={activeSelected}
           runtimeReachable={runtimeReachable}
+        />
+      )}
+      {service === "compute" && cloud !== "aws" && (
+        <ComputePowerPanel
+          resource={inspectedResource}
+          capabilities={resourceCapabilities}
+          onChanged={() => {
+            void qc.invalidateQueries({queryKey: ["cloud-resources", accountId, cloud, service]});
+            if (activeSelected) {
+              void qc.invalidateQueries({queryKey: ["cloud-resource", accountId, cloud, service, activeSelected.id]});
+            }
+          }}
         />
       )}
       {service === "networking" && (
