@@ -55,6 +55,7 @@ import {
   sqs as defaultSqs,
 } from "../aws";
 import { createZipArchive, handlerFileName } from "./zipArchive";
+import { decodeLambdaPackage } from "./lambdaPackage";
 
 export class AwsServerlessAdapter implements CloudServiceAdapter {
   readonly cloud = "aws" as const;
@@ -146,11 +147,13 @@ export class AwsServerlessAdapter implements CloudServiceAdapter {
       values.functionName ?? values.name ?? "",
     ).trim();
     const runtime = String(values.runtime ?? "").trim();
-    const handler = String(values.handler ?? "").trim();
+    const isRust = runtime === "provided.al2023";
+    const handler = isRust ? "bootstrap" : String(values.handler ?? "").trim();
+    const architecture = String(values.architecture || "x86_64");
     const role = String(values.role ?? "").trim();
     const description = String(values.description ?? "").trim();
-    const memorySize = Number(values.memorySize ?? 128);
-    const timeout = Number(values.timeout ?? 3);
+    const memorySize = Number(values.memorySize || 128);
+    const timeout = Number(values.timeout || 3);
     const code =
       String(values.code ?? "").trim() ||
       `
@@ -169,22 +172,25 @@ exports.handler = async (event) => {
     if (!runtime) throw new ValidationError("runtime is required");
     if (!handler) throw new ValidationError("handler is required");
     if (!role) throw new ValidationError("role is required");
+    if (architecture !== "x86_64" && architecture !== "arm64") {
+      throw new ValidationError("Architecture must be x86_64 or arm64.");
+    }
+    const zipFile = isRust
+      ? decodeLambdaPackage(values.zipBase64)
+      : createZipArchive([{ name: handlerFileName(handler, runtime), content: code }]);
 
     const res = await this.lambda.send(
       new CreateFunctionCommand({
         FunctionName: functionName,
         Runtime: runtime as never,
         Handler: handler,
+        Architectures: [architecture],
         Role: role,
         Description: description || undefined,
         MemorySize: Number.isFinite(memorySize) ? memorySize : 128,
         Timeout: Number.isFinite(timeout) ? timeout : 3,
         Code: {
-          // Must be a real archive: the runtime looks for the handler's module
-          // inside it, so raw source text is rejected outright.
-          ZipFile: createZipArchive([
-            { name: handlerFileName(handler, runtime), content: code },
-          ]),
+          ZipFile: zipFile,
         },
       }),
     );

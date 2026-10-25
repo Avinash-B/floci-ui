@@ -97,6 +97,10 @@ for search and preview while preserving the original `RawData`. Explicit fields
 returned by the runtime take precedence over MIME-derived values. Messages that
 cannot be parsed remain available in the raw view.
 
+Rust Lambda functions can be created from a compiled ZIP and invoked in the console.
+See the [Rust Lambda walkthrough](examples/rust-lambda/README.md) for building a
+Linux package, selecting the architecture, and running the live browser test.
+
 ## Supported Services
 
 Generated from the service catalog and adapter registry, so it never drifts. After changing either, run `cd packages/api && bun run scripts/service-matrix.ts`.
