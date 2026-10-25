@@ -152,8 +152,8 @@ export class AwsServerlessAdapter implements CloudServiceAdapter {
     const architecture = String(values.architecture || "x86_64");
     const role = String(values.role ?? "").trim();
     const description = String(values.description ?? "").trim();
-    const memorySize = Number(values.memorySize || 128);
-    const timeout = Number(values.timeout || 3);
+    const memorySize = Number(values.memorySize === "" ? 128 : values.memorySize ?? 128);
+    const timeout = Number(values.timeout === "" ? 3 : values.timeout ?? 3);
     const code =
       String(values.code ?? "").trim() ||
       `
