@@ -220,13 +220,16 @@ export function DynamicResourceView({
     }) > 0;
 
   const isAwsSageMaker = cloud === "aws" && service === "sagemaker";
+  const isGcpCompute = cloud === "gcp" && service === "compute";
   const canDeleteResource = viewingDeleted
     ? () => false
     : isAwsSageMaker
       ? (resource: CloudResource) => resource.type !== "sagemaker-training-job"
-      : emptyingKey !== undefined
-        ? (resource: CloudResource) => targetKey({ accountId, cloud, bucketId: resource.id }) !== emptyingKey
-        : undefined;
+      : isGcpCompute
+        ? (resource: CloudResource) => resource.type !== "disk"
+        : emptyingKey !== undefined
+          ? (resource: CloudResource) => targetKey({ accountId, cloud, bucketId: resource.id }) !== emptyingKey
+          : undefined;
   const sagemakerDashboardResourcesQuery = useQuery({
     queryKey: ["sagemaker-dashboard-resources", accountId, cloud, service],
     queryFn: ({ signal }) => listCloudResources(cloud, service, "", signal),
@@ -1343,6 +1346,8 @@ function renderResourceSurface({
   }
 
   return (
+    <>
+    {schema.notice && <p className="muted">{schema.notice}</p>}
     <ResourceTable
       schema={schema}
       resources={resources}
@@ -1359,6 +1364,7 @@ function renderResourceSurface({
       onToggleSelectAll={onToggleSelectAll}
       isAllSelected={isAllSelected}
     />
+    </>
   );
 }
 
